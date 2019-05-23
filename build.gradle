@@ -1,0 +1,228 @@
+buildscript {
+    ext.bouncycastleVersion = '1.54'
+    ext.jacksonVersion = '2.8.5'
+    ext.javapoetVersion = '1.7.0'
+    ext.jnr_unixsocketVersion = '0.15'
+    ext.okhttpVersion = '3.8.1'
+    ext.rxjavaVersion = '2.2.3'
+    ext.slf4jVersion = '1.7.25'
+    ext.gsonVersion = '2.8.5'
+
+    // test dependencies
+    ext.equalsverifierVersion = '2.1.7'
+    ext.junitVersion = '4.11'
+    ext.junitBenchmarkVersion = '0.7.2'
+    ext.logbackVersion = '1.2.3'
+    ext.mockitoVersion = '1.10.19'
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
+    }
+}
+
+plugins {
+    id "com.jfrog.bintray" version "1.7.3"
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+// should only be applied to the root project, see
+// https://github.com/Codearte/gradle-nexus-staging-plugin#multi-project-build
+apply plugin: 'io.codearte.nexus-staging'
+apply plugin: 'jacoco'
+
+description 'parabox base project'
+
+allprojects {
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    group 'com.parabox'
+    version '1.0.0'
+
+    apply plugin: 'java'
+    apply plugin: 'jacoco'
+//    apply plugin: 'checkstyle'
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    // We don't want any compiler warnings
+    compileJava {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+    compileTestJava {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+
+    jacoco {
+        toolVersion = '0.7.7.201606060606' // See http://www.eclemma.org/jacoco/.
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+        }
+    }
+/*
+    tasks.withType(Test) {
+        reports.html.destination = file("${reporting.baseDir}/${name}")
+    }
+    */
+
+//    checkstyle {
+//        toolVersion = "7.6.1"
+//        configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+//    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    dependencies {
+        testCompile "junit:junit:$junitVersion",
+                "org.mockito:mockito-core:$mockitoVersion"
+    }
+}
+
+project(':core') {
+    task coreJar(type: Jar) {
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
+        from {
+            configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+        from sourceSets.main.output
+    }
+}
+
+configure(subprojects.findAll { it.name != 'integration-tests' }) {
+    // Required for Maven Nexus repository
+    apply plugin: 'maven'
+    apply plugin: 'signing'
+
+    // Required for JFrog Artifactory repository
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.bintray'
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task testJar(type: Jar) {
+        classifier = 'tests'
+        from sourceSets.test.output
+    }
+
+    artifacts {
+        archives sourcesJar, javadocJar, testJar
+    }
+
+    ext {
+        ossrhUsername = project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
+        ossrhPassword = project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+                    authentication(
+                            userName: ossrhUsername,
+                            password: ossrhPassword
+                    )
+                }
+
+                pom.project {
+                    name 'parabox-sdk-java'
+                    packaging 'jar'
+                    description project.description
+                    url 'https://github.com/parabox-network/parabox-sdk-java.git'
+
+                    scm {
+                        connection 'scm:git@github.com:parabox-network/parabox-sdk-java.git'
+                        url 'https://github.com/parabox-network/parabox-sdk-java.git'
+                    }
+
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'parabox'
+                            name 'parabox developer'
+                            email 'op@parabox.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        required { gradle.taskGraph.hasTask('uploadArchives') }  // only execute as part of this task
+        sign configurations.archives
+    }
+
+    task release {
+        //TODO run clean & closeAndPromoteRepository once
+        dependsOn 'build'
+        dependsOn 'uploadArchives'
+        dependsOn 'bintrayUpload'
+
+        tasks.findByName('uploadArchives').mustRunAfter 'build'
+        tasks.findByName('bintrayUpload').mustRunAfter 'build'
+    }
+}
+
+task jacocoRootTestReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    dependsOn = subprojects.test
+    additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
+    sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
+    classDirectories = files(subprojects.sourceSets.main.output)
+    executionData = files(subprojects.jacocoTestReport.executionData)
+    reports {
+        xml.enabled = true
+    }
+
+    onlyIf = {
+        true
+    }
+
+    doFirst {
+        executionData = files(executionData.findAll {
+            it.exists()
+        })
+    }
+
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: [
+                            'com/cryptape/cita/abi/datatypes/generated/**',
+                            'com/cryptape/cita/tuples/generated/**',
+                            'com/cryptape/cita/ens/contracts/generated/**'
+                    ])
+        })
+    }
+}
