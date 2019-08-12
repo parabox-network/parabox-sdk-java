@@ -14,7 +14,7 @@ parabox-sdk-java 集成了与 Parabox 客户端交互的功能，可以用来对
 
 ### 预装组件
 Java 8  
-Gradle 4.3
+Gradle 5.0
 
 ### 安装
 - 在 release 页面下载 parabox-sdk-java 的 jar 包，或者在源项目中运行 `gradle shadowJar` 生成 jar 包，jar包会在 `parabox/build/libs` 中生成，名字是 `parabox-1.0.0-all.jar`。

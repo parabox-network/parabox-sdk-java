@@ -24,6 +24,7 @@ import com.cryptape.cita.crypto.sm2.SM3;
 import com.cryptape.cita.utils.Numeric;
 import com.cryptape.cita.utils.Strings;
 
+import static com.cryptape.cita.utils.Numeric.encodeQuantity;
 import static org.abstractj.kalium.encoders.Encoder.HEX;
 import static com.cryptape.cita.utils.Numeric.cleanHexPrefix;
 import static com.cryptape.cita.utils.Numeric.prependHexPrefix;
@@ -98,32 +99,32 @@ public class Transaction {
     }
 
     public static Transaction createContractTransaction(String nonce, long quota, long validUntilBlock,
-            int version, BigInteger chainId, String value, String init) {
+                                                        int version, BigInteger chainId, String value, String init) {
         return new Transaction("", nonce, quota, validUntilBlock, version, chainId, value, init);
     }
 
     public static Transaction createContractTransaction(String nonce, long quota, long validUntilBlock,
-            int version, BigInteger chainId, String value, String contractCode, String constructorCode) {
+                                                        int version, BigInteger chainId, String value, String contractCode, String constructorCode) {
         String init = contractCode + cleanHexPrefix(constructorCode);
         return new Transaction("", nonce, quota, validUntilBlock, version, chainId, value, init);
     }
 
     public static Transaction createFunctionCallTransaction(String to, String nonce, long quota, long validUntilBlock,
-            int version, BigInteger chainId, String value, String data) {
+                                                            int version, BigInteger chainId, String value, String data) {
         return new Transaction(to, nonce, quota, validUntilBlock, version, chainId, value, data);
     }
 
     public static Transaction createFunctionCallTransaction(String to, String nonce, long quota, long validUntilBlock,
-            int version, BigInteger chainId, String value,  byte[] data) {
+                                                            int version, BigInteger chainId, String value,  byte[] data) {
         return new Transaction(to, nonce, quota, validUntilBlock, version, chainId, value, new String(data));
     }
 
     /*
-    * sign consists of 3 parts:
-    * 1. serialize raw transaction
-    * 2. get signature from transaction
-    * 3. add serialized raw transaction and signature together
-    * */
+     * sign consists of 3 parts:
+     * 1. serialize raw transaction
+     * 2. get signature from transaction
+     * 3. add serialized raw transaction and signature together
+     * */
     public String sign(
             String privateKey, CryptoTx cryptoTx, boolean isByteArray)
             throws IOException {
@@ -239,7 +240,7 @@ public class Transaction {
         } else {
             BigInteger valueBigInt = value.matches("0[xX][0-9a-fA-F]+") ? Numeric.toBigInt(value) : new BigInteger(value);
             if (Transaction.MAX_VALUE.compareTo(valueBigInt) > 0) {
-                return valueBigInt.toString(16);
+                return encodeQuantity(valueBigInt);
             } else {
                 System.out.println("Value you input is out of bound");
                 throw new IllegalArgumentException(
