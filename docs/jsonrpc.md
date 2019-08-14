@@ -22,7 +22,6 @@
 * [appGetFilterLogs](#appgetfilterlogs)
 * [appLogObservable](#applogobservable)
 * [estimateGas](#estimateGasj)
-* [getTransactionReceiptEx](#getTransactionReceiptEx)
 
 ### netPeer
 
@@ -550,27 +549,3 @@ Request<?, ParaboxEstimateGas>
 Paraboxj service = Paraboxj.build(new HttpService("http://127.0.0.1"));
 ParaboxEstimateGas paraboxEstimateGas = service.parabox.estimateGas(null, "0x0D9C9CDC6BFF56520772195948A6B13C2b2bAA8a", null, "0xa9059cbb000000000000000000000000f8f6f31a14b73a71a310d7b8a895e20261fe09d40000000000000000000000000000000000000000000000000000000000004e20", "latest").send().getResult();
 ```
-
-### getTransactionReceiptEx
-
-**方法名**
-
-`Request<?, ParaboxGetTransactionReceiptEx> getTransactionReceiptEx(String transactionHash)`
-获取交易hash的扩增回执。
-
-**参数**
-
-- transactionHash - 交易哈希
-
-**返回值**
-
-Request<?, ParaboxGetTransactionReceiptEx>
-
-**示例**
-
-```
-Paraboxj service = Paraboxj.build(new HttpService("http://127.0.0.1"));
-ParaboxGetTransactionReceiptEx paraboxGetTransactionReceiptEx = service.getTransactionReceiptEx("0x9b5cb468fb34f67ba2663255b1f0aa8e000d037e06c9fa6759cbe99f04cb7eb2").send().getResult();
-```
-
-### 
