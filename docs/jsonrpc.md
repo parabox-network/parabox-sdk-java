@@ -344,6 +344,10 @@ String txHash = "{hash of transactino to be searched}";
 AppGetTransactionReceipt txReceipt = service.appGetTransactionReceipt(txHash).send();
 ```
 
+**说明**
+
+- 可以通过 `txReceipt.getErrorMessage() == null` 来判断交易是否成功
+
 ### appNewBlockFilter
 
 **方法名**
